@@ -1,0 +1,103 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Create Security Group
+
+Parameters:
+  HogeApplicationParams:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: ''
+
+Resources:
+  # 踏み台のセキュリティグループ作成
+  BastionSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub ${HogeApplicationParams}-bastion
+      GroupDescription: !Sub ${HogeApplicationParams}-bastion
+      VpcId: !ImportValue HogeApplicationVpc
+      SecurityGroupIngress:
+      - IpProtocol: tcp
+        FromPort: 22
+        ToPort: 22
+        # My IPを設定
+        CidrIp: xxx.xxx.xxx.xxx/xx
+      - IpProtocol: tcp
+        FromPort: 80
+        ToPort: 80
+        CidrIp: 0.0.0.0/0
+      - IpProtocol: tcp
+        FromPort: 443
+        ToPort: 443
+        CidrIp: 0.0.0.0/0
+      SecurityGroupEgress:
+      - IpProtocol: -1
+        CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: !Sub ${HogeApplicationParams}-bastion
+
+  # Ansible管理サーバのセキュリティグループ作成
+  AnsibleControllerSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub ${HogeApplicationParams}-ansible-controller
+      GroupDescription: !Sub ${HogeApplicationParams}-ansible-controller
+      VpcId: !ImportValue HogeApplicationVpc
+      SecurityGroupIngress:
+      - IpProtocol: tcp
+        FromPort: 22
+        ToPort: 22
+        CidrIp: 192.168.0.0/23
+      - IpProtocol: tcp
+        FromPort: 80
+        ToPort: 80
+        CidrIp: 0.0.0.0/0
+      - IpProtocol: tcp
+        FromPort: 443
+        ToPort: 443
+        CidrIp: 0.0.0.0/0
+      SecurityGroupEgress:
+      - IpProtocol: -1
+        CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: !Sub ${HogeApplicationParams}-ansible-controller
+
+  # 開発サーバのセキュリティグループ作成
+  DevAppSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub ${HogeApplicationParams}-dev-app
+      GroupDescription: !Sub ${HogeApplicationParams}-dev-app
+      VpcId: !ImportValue HogeApplicationVpc
+      SecurityGroupIngress:
+      - IpProtocol: tcp
+        FromPort: 22
+        ToPort: 22
+        CidrIp: 192.168.0.0/23
+      - IpProtocol: tcp
+        FromPort: 80
+        ToPort: 80
+        CidrIp: 0.0.0.0/0
+      - IpProtocol: tcp
+        FromPort: 443
+        ToPort: 443
+        CidrIp: 0.0.0.0/0
+      SecurityGroupEgress:
+      - IpProtocol: -1
+        CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: !Sub ${HogeApplicationParams}-dev-app
+Outputs:
+  BastionSecurityGroup:
+    Value: !Ref BastionSecurityGroup
+    Export:
+      Name: BastionSecurityGroup
+  AnsibleControllerSecurityGroup:
+    Value: !Ref AnsibleControllerSecurityGroup
+    Export:
+      Name: AnsibleControllerSecurityGroup
+  DevAppSecurityGroup:
+    Value: !Ref DevAppSecurityGroup
+    Export:
+      Name: DevAppSecurityGroup

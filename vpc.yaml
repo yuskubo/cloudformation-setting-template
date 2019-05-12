@@ -1,0 +1,44 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Create VPC
+
+Parameters:
+  HogeApplicationParams:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: ''
+
+Resources:
+  # VPCの作成
+  HogeApplicationVpc:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 192.168.0.0/23
+      EnableDnsSupport: 'true'
+      EnableDnsHostnames: 'true'
+      Tags:
+      - Key: Name
+        Value: !Ref HogeApplicationParams
+
+  # インターネットゲートウェイの作成
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+      - Key: Name
+        Value: !Sub ${HogeApplicationParams}-igw
+
+  # インターネットゲートウェイをVPCにアタッチ
+  AttachGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref HogeApplicationVpc
+      InternetGatewayId: !Ref InternetGateway
+
+Outputs:
+  HogeApplicationVpc:
+    Value: !Ref HogeApplicationVpc
+    Export:
+      Name: HogeApplicationVpc
+  HogeApplicationInternetGateway:
+    Value: !Ref InternetGateway
+    Export:
+      Name: HogeApplicationInternetGateway

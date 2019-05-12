@@ -1,0 +1,372 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Create Network ACL
+
+Parameters:
+  HogeApplicationParams:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: ''
+
+Resources:
+  # PublicサブネットのACLを作成
+  GlobalNetworkAcl:
+    Type: AWS::EC2::NetworkAcl
+    Properties:
+      VpcId: !ImportValue HogeApplicationVpc
+      Tags:
+      - Key: Name
+        Value: !Sub ${HogeApplicationParams}-dev-global
+
+  # PublicサブネットにACLを関連付け
+  GlobalSubnetNetworkAclAssociation:
+    Type: AWS::EC2::SubnetNetworkAclAssociation
+    Properties:
+      SubnetId: !ImportValue GlobalSubnet
+      NetworkAclId: !Ref GlobalNetworkAcl
+
+  GlobalAclInHttp:
+    Type: AWS::EC2::NetworkAclEntry
+    Properties:
+      Egress: 'false'
+      RuleNumber: 100
+      Protocol: 6
+      PortRange:
+        From: 80
+        To: 80
+      CidrBlock: 0.0.0.0/0
+      RuleAction: allow
+      NetworkAclId: !Ref GlobalNetworkAcl
+
+  GlobalAclInHttps:
+    Type: AWS::EC2::NetworkAclEntry
+    Properties:
+      Egress: 'false'
+      RuleNumber: 110
+      Protocol: 6
+      PortRange:
+        From: 443
+        To: 443
+      CidrBlock: 0.0.0.0/0
+      RuleAction: allow
+      NetworkAclId: !Ref GlobalNetworkAcl
+
+  GlobalAclInEphemeralPort:
+    Type: AWS::EC2::NetworkAclEntry
+    Properties:
+      Egress: 'false'
+      RuleNumber: 900
+      Protocol: 6
+      PortRange:
+        From: 1024
+        To: 65535
+      CidrBlock: 0.0.0.0/0
+      RuleAction: allow
+      NetworkAclId: !Ref GlobalNetworkAcl
+
+  GlobalAclOutHttp:
+    Type: AWS::EC2::NetworkAclEntry
+    Properties:
+      Egress: 'true'
+      RuleNumber: 100
+      Protocol: 6
+      PortRange:
+        From: 80
+        To: 80
+      CidrBlock: 0.0.0.0/0
+      RuleAction: allow
+      NetworkAclId: !Ref GlobalNetworkAcl
+
+  GlobalAclOutHttps:
+    Type: AWS::EC2::NetworkAclEntry
+    Properties:
+      Egress: 'true'
+      RuleNumber: 110
+      Protocol: 6
+      PortRange:
+        From: 443
+        To: 443
+      CidrBlock: 0.0.0.0/0
+      RuleAction: allow
+      NetworkAclId: !Ref GlobalNetworkAcl
+
+  # 踏み台サブネットのACLを作成
+  BastionNetworkAcl:
+    Type: AWS::EC2::NetworkAcl
+    Properties:
+      VpcId: !ImportValue HogeApplicationVpc
+      Tags:
+      - Key: Name
+        Value: !Sub ${HogeApplicationParams}-bastion
+
+  # 踏み台サブネットにACLを関連付け
+  BastionSubnetNetworkAclAssociation:
+    Type: AWS::EC2::SubnetNetworkAclAssociation
+    Properties:
+      SubnetId: !ImportValue BastionSubnet
+      NetworkAclId: !Ref BastionNetworkAcl
+
+  BastionAclInSsh:
+    Type: AWS::EC2::NetworkAclEntry
+    Properties:
+      Egress: 'false'
+      RuleNumber: 100
+      Protocol: 6
+      PortRange:
+        From: 22
+        To: 22
+      # My IPを設定
+      CidrBlock: xxx.xxx.xxx.xxx/xx
+      RuleAction: allow
+      NetworkAclId: !Ref BastionNetworkAcl
+
+  BastionAclInEphemeralPort:
+    Type: AWS::EC2::NetworkAclEntry
+    Properties:
+      Egress: 'false'
+      RuleNumber: 900
+      Protocol: 6
+      PortRange:
+        From: 1024
+        To: 65535
+      CidrBlock: 0.0.0.0/0
+      RuleAction: allow
+      NetworkAclId: !Ref BastionNetworkAcl
+
+  BastionAclOutHttp:
+    Type: AWS::EC2::NetworkAclEntry
+    Properties:
+      Egress: 'true'
+      RuleNumber: 100
+      Protocol: 6
+      PortRange:
+        From: 80
+        To: 80
+      CidrBlock: 0.0.0.0/0
+      RuleAction: allow
+      NetworkAclId: !Ref BastionNetworkAcl
+
+  BastionAclOutHttps:
+    Type: AWS::EC2::NetworkAclEntry
+    Properties:
+      Egress: 'true'
+      RuleNumber: 110
+      Protocol: 6
+      PortRange:
+        From: 443
+        To: 443
+      CidrBlock: 0.0.0.0/0
+      RuleAction: allow
+      NetworkAclId: !Ref BastionNetworkAcl
+
+  BastionAclOutSsh:
+    Type: AWS::EC2::NetworkAclEntry
+    Properties:
+      Egress: 'true'
+      RuleNumber: 200
+      Protocol: 6
+      PortRange:
+        From: 22
+        To: 22
+      CidrBlock: 192.168.0.0/23
+      RuleAction: allow
+      NetworkAclId: !Ref BastionNetworkAcl
+
+  BastionAclOutEphemeralPort:
+    Type: AWS::EC2::NetworkAclEntry
+    Properties:
+      Egress: 'true'
+      RuleNumber: 900
+      Protocol: 6
+      PortRange:
+        From: 32768
+        To: 60999
+      CidrBlock: 0.0.0.0/0
+      RuleAction: allow
+      NetworkAclId: !Ref BastionNetworkAcl
+
+  # Ansible管理サブネットのACLを作成
+  AnsibleControllerNetworkAcl:
+    Type: AWS::EC2::NetworkAcl
+    Properties:
+      VpcId: !ImportValue HogeApplicationVpc
+      Tags:
+      - Key: Name
+        Value: !Sub ${HogeApplicationParams}-ansible-controller
+
+  # Ansible管理サブネットにACLを関連付け
+  AnsibleControllerSubnetNetworkAclAssociation:
+    Type: AWS::EC2::SubnetNetworkAclAssociation
+    Properties:
+      SubnetId: !ImportValue AnsibleControllerSubnet
+      NetworkAclId: !Ref AnsibleControllerNetworkAcl
+
+  AnsibleControllerAclInSsh:
+    Type: AWS::EC2::NetworkAclEntry
+    Properties:
+      Egress: 'false'
+      RuleNumber: 100
+      Protocol: 6
+      PortRange:
+        From: 22
+        To: 22
+      CidrBlock: 192.168.0.0/23
+      RuleAction: allow
+      NetworkAclId: !Ref AnsibleControllerNetworkAcl
+
+  AnsibleControllerAclInEphemeralPort:
+    Type: AWS::EC2::NetworkAclEntry
+    Properties:
+      Egress: 'false'
+      RuleNumber: 900
+      Protocol: 6
+      PortRange:
+        From: 1024
+        To: 65535
+      CidrBlock: 0.0.0.0/0
+      RuleAction: allow
+      NetworkAclId: !Ref AnsibleControllerNetworkAcl
+
+  AnsibleControllerAclOutHttp:
+    Type: AWS::EC2::NetworkAclEntry
+    Properties:
+      Egress: 'true'
+      RuleNumber: 100
+      Protocol: 6
+      PortRange:
+        From: 80
+        To: 80
+      CidrBlock: 0.0.0.0/0
+      RuleAction: allow
+      NetworkAclId: !Ref AnsibleControllerNetworkAcl
+
+  AnsibleControllerAclOutHttps:
+    Type: AWS::EC2::NetworkAclEntry
+    Properties:
+      Egress: 'true'
+      RuleNumber: 110
+      Protocol: 6
+      PortRange:
+        From: 443
+        To: 443
+      CidrBlock: 0.0.0.0/0
+      RuleAction: allow
+      NetworkAclId: !Ref AnsibleControllerNetworkAcl
+
+  AnsibleControllerAclOutSsh:
+    Type: AWS::EC2::NetworkAclEntry
+    Properties:
+      Egress: 'true'
+      RuleNumber: 200
+      Protocol: 6
+      PortRange:
+        From: 22
+        To: 22
+      CidrBlock: 192.168.0.0/23
+      RuleAction: allow
+      NetworkAclId: !Ref AnsibleControllerNetworkAcl
+
+  AnsibleControllerAclOutEphemeralPort:
+    Type: AWS::EC2::NetworkAclEntry
+    Properties:
+      Egress: 'true'
+      RuleNumber: 900
+      Protocol: 6
+      PortRange:
+        From: 32768
+        To: 60999
+      CidrBlock: 0.0.0.0/0
+      RuleAction: allow
+      NetworkAclId: !Ref AnsibleControllerNetworkAcl
+
+  # 開発用サブネットのACLを作成
+  DevAppNetworkAcl:
+    Type: AWS::EC2::NetworkAcl
+    Properties:
+      VpcId: !ImportValue HogeApplicationVpc
+      Tags:
+      - Key: Name
+        Value: !Sub ${HogeApplicationParams}-dev-app
+
+  # 開発用サブネットにACLを関連付け
+  DevAppSubnetNetworkAclAssociation:
+    Type: AWS::EC2::SubnetNetworkAclAssociation
+    Properties:
+      SubnetId: !ImportValue DevAppSubnet
+      NetworkAclId: !Ref DevAppNetworkAcl
+
+  DevAppAclInSsh:
+    Type: AWS::EC2::NetworkAclEntry
+    Properties:
+      Egress: 'false'
+      RuleNumber: 100
+      Protocol: 6
+      PortRange:
+        From: 22
+        To: 22
+      CidrBlock: 192.168.0.0/23
+      RuleAction: allow
+      NetworkAclId: !Ref DevAppNetworkAcl
+
+  DevAppAclInEphemeralPort:
+    Type: AWS::EC2::NetworkAclEntry
+    Properties:
+      Egress: 'false'
+      RuleNumber: 900
+      Protocol: 6
+      PortRange:
+        From: 1024
+        To: 65535
+      CidrBlock: 0.0.0.0/0
+      RuleAction: allow
+      NetworkAclId: !Ref DevAppNetworkAcl
+
+  DevAppAclOutHttp:
+    Type: AWS::EC2::NetworkAclEntry
+    Properties:
+      Egress: 'true'
+      RuleNumber: 100
+      Protocol: 6
+      PortRange:
+        From: 80
+        To: 80
+      CidrBlock: 0.0.0.0/0
+      RuleAction: allow
+      NetworkAclId: !Ref DevAppNetworkAcl
+
+  DevAppAclOutHttps:
+    Type: AWS::EC2::NetworkAclEntry
+    Properties:
+      Egress: 'true'
+      RuleNumber: 110
+      Protocol: 6
+      PortRange:
+        From: 443
+        To: 443
+      CidrBlock: 0.0.0.0/0
+      RuleAction: allow
+      NetworkAclId: !Ref DevAppNetworkAcl
+
+  DevAppAclOutSsh:
+    Type: AWS::EC2::NetworkAclEntry
+    Properties:
+      Egress: 'true'
+      RuleNumber: 200
+      Protocol: 6
+      PortRange:
+        From: 22
+        To: 22
+      CidrBlock: 192.168.0.0/23
+      RuleAction: allow
+      NetworkAclId: !Ref DevAppNetworkAcl
+
+  DevAppAclOutEphemeralPort:
+    Type: AWS::EC2::NetworkAclEntry
+    Properties:
+      Egress: 'true'
+      RuleNumber: 900
+      Protocol: 6
+      PortRange:
+        From: 32768
+        To: 60999
+      CidrBlock: 0.0.0.0/0
+      RuleAction: allow
+      NetworkAclId: !Ref DevAppNetworkAcl
