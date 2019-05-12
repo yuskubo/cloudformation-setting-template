@@ -1,0 +1,176 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Create subnet
+
+Parameters:
+  HogeApplicationParams:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: ''
+
+Resources:
+  # Publicサブネットを追加
+  GlobalSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      CidrBlock: 192.168.0.0/28
+      MapPublicIpOnLaunch: 'true'
+      VpcId: !ImportValue HogeApplicationVpc
+      Tags:
+      - Key: Name
+        Value: !Sub ${HogeApplicationParams}-dev-global
+
+  # Publicサブネットのルートテーブル作成
+  GlobalRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !ImportValue HogeApplicationVpc
+      Tags:
+      - Key: Name
+        Value: !Sub ${HogeApplicationParams}-dev-global-table
+
+  # Publicサブネットにルートテーブルを関連付け
+  GlobalSubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref GlobalSubnet
+      RouteTableId: !Ref GlobalRouteTable
+
+  # Publicサブネットのルートテーブルにインターネットゲートウェイへのルートを追加
+  GlobalRoute:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref GlobalRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !ImportValue HogeApplicationInternetGateway
+
+  # Privateサブネット用のNATゲートウェイをパブリックサブネットに作成
+  DevelopmentNatgatway:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId: eipalloc-0a592b70252aeba1b
+      SubnetId: !Ref GlobalSubnet
+      Tags:
+        - Key: Name
+          Value: !Sub ${HogeApplicationParams}-dev-nat
+
+  # 踏み台用サブネットを追加
+  BastionSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      CidrBlock: 192.168.0.16/28
+      MapPublicIpOnLaunch: 'true'
+      VpcId: !ImportValue HogeApplicationVpc
+      Tags:
+      - Key: Name
+        Value: !Sub ${HogeApplicationParams}-bastion
+
+  # 踏み台用サブネットのルートテーブル作成
+  BastionRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !ImportValue HogeApplicationVpc
+      Tags:
+      - Key: Name
+        Value: !Sub ${HogeApplicationParams}-bastion-table
+
+  # 踏み台用サブネットのルートテーブルにNATゲートウェイへのルートを追加
+  BastionRoute:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref BastionRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !ImportValue HogeApplicationInternetGateway
+
+  # 踏み台用サブネットにルートテーブルを関連付け
+  BastionSubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref BastionSubnet
+      RouteTableId: !Ref BastionRouteTable
+
+  # Ansible管理用のPrivateサブネット追加
+  AnsibleControllerSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      CidrBlock: 192.168.0.32/28
+      MapPublicIpOnLaunch: 'false'
+      VpcId: !ImportValue HogeApplicationVpc
+      Tags:
+      - Key: Name
+        Value: !Sub ${HogeApplicationParams}-ansible-controller
+
+  # Ansible管理用サブネットのルートテーブル作成
+  AnsibleControllerRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !ImportValue HogeApplicationVpc
+      Tags:
+      - Key: Name
+        Value: !Sub ${HogeApplicationParams}-ansible-controller-table
+
+  # Ansible管理用サブネットのルートテーブルにNATゲートウェイへのルートを追加
+  AnsibleControllerRoute:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref AnsibleControllerRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref DevelopmentNatgatway
+
+  # Ansible管理用サブネットにルートテーブルを関連付け
+  AnsibleControllerSubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref AnsibleControllerSubnet
+      RouteTableId: !Ref AnsibleControllerRouteTable
+
+  # 開発用のPrivateサブネット追加
+  DevAppSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      CidrBlock: 192.168.0.48/28
+      MapPublicIpOnLaunch: 'false'
+      VpcId: !ImportValue HogeApplicationVpc
+      Tags:
+      - Key: Name
+        Value: !Sub ${HogeApplicationParams}-dev-app
+
+  # 開発用サブネットのルートテーブル作成
+  DevAppRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !ImportValue HogeApplicationVpc
+      Tags:
+      - Key: Name
+        Value: !Sub ${HogeApplicationParams}-dev-app-table
+
+  # 開発用サブネットのルートテーブルにNATゲートウェイへのルートを追加
+  DevAppRoute:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref DevAppRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref DevelopmentNatgatway
+
+  # 開発用サブネットにルートテーブルを関連付け
+  DevAppSubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref DevAppSubnet
+      RouteTableId: !Ref DevAppRouteTable
+
+Outputs:
+  GlobalSubnet:
+    Value: !Ref GlobalSubnet
+    Export:
+      Name: GlobalSubnet
+  BastionSubnet:
+    Value: !Ref BastionSubnet
+    Export:
+      Name: BastionSubnet
+  AnsibleControllerSubnet:
+    Value: !Ref AnsibleControllerSubnet
+    Export:
+      Name: AnsibleControllerSubnet
+  DevAppSubnet:
+    Value: !Ref DevAppSubnet
+    Export:
+      Name: DevAppSubnet

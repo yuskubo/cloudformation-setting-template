@@ -1,0 +1,79 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Create EC2 Instance
+
+Parameters:
+  HogeApplicationParams:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: ''
+
+Resources:
+  # 踏み台サーバの作成
+  BastionEC2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: ami-0f9ae750e8274075b
+      InstanceType: t2.micro
+      SubnetId: !ImportValue BastionSubnet
+      SecurityGroupIds:
+        - !ImportValue BastionSecurityGroup
+      KeyName: !Sub ${HogeApplicationParams}-bastion
+      Monitoring: 'true'
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeType: gp2
+            VolumeSize: 8
+            DeleteOnTermination: 'true'
+      Tags:
+        - Key: Name
+          Value: !Sub ${HogeApplicationParams}-bastion
+
+  # Ansible管理サーバの作成
+  AnsibleControllerEC2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: ami-0f9ae750e8274075b
+      InstanceType: t2.micro
+      SubnetId: !ImportValue AnsibleControllerSubnet
+      SecurityGroupIds:
+        - !ImportValue AnsibleControllerSecurityGroup
+      KeyName: !Sub ${HogeApplicationParams}-ansible-controller
+      Monitoring: 'true'
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeType: gp2
+            VolumeSize: 8
+            DeleteOnTermination: 'true'
+      Tags:
+        - Key: Name
+          Value: !Sub ${HogeApplicationParams}-ansible-controller
+
+  # 開発サーバの作成
+  DevAppEC2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: ami-0f9ae750e8274075b
+      InstanceType: t2.micro
+      SubnetId: !ImportValue DevAppSubnet
+      SecurityGroupIds:
+        - !ImportValue DevAppSecurityGroup
+      KeyName: !Sub ${HogeApplicationParams}-dev
+      Monitoring: 'true'
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeType: gp2
+            VolumeSize: 8
+            DeleteOnTermination: 'true'
+      Tags:
+        - Key: Name
+          Value: !Sub ${HogeApplicationParams}-dev-app
+
+  # ElasticIPの紐付け
+  ElasticIPAssociate:
+    Type: AWS::EC2::EIPAssociation
+    Properties:
+      予め作成したElastic IPを設定
+      EIP: xxx.xxx.xxx.xxx
+      InstanceId: !Ref BastionEC2Instance
