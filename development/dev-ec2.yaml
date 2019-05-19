@@ -11,6 +11,8 @@ Resources:
   BastionEC2Instance:
     Type: AWS::EC2::Instance
     Properties:
+      AvailabilityZone: ap-northeast-1a
+      PrivateIpAddress: 192.168.0.20
       ImageId: ami-0f9ae750e8274075b
       InstanceType: t2.micro
       SubnetId: !ImportValue BastionSubnet
@@ -32,6 +34,8 @@ Resources:
   AnsibleControllerEC2Instance:
     Type: AWS::EC2::Instance
     Properties:
+      AvailabilityZone: ap-northeast-1a
+      PrivateIpAddress: 192.168.0.36
       ImageId: ami-0f9ae750e8274075b
       InstanceType: t2.micro
       SubnetId: !ImportValue AnsibleControllerSubnet
@@ -53,6 +57,8 @@ Resources:
   DevAppEC2Instance:
     Type: AWS::EC2::Instance
     Properties:
+      AvailabilityZone: ap-northeast-1a
+      PrivateIpAddress: 192.168.0.52
       ImageId: ami-0f9ae750e8274075b
       InstanceType: t2.micro
       SubnetId: !ImportValue DevAppSubnet
@@ -74,6 +80,6 @@ Resources:
   ElasticIPAssociate:
     Type: AWS::EC2::EIPAssociation
     Properties:
-      予め作成したElastic IPを設定
+      # 予め作成したElastic IPを設定
       EIP: xxx.xxx.xxx.xxx
       InstanceId: !Ref BastionEC2Instance

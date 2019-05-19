@@ -88,6 +88,19 @@ Resources:
       RuleAction: allow
       NetworkAclId: !Ref GlobalNetworkAcl
 
+  GlobalAclOutEphemeralPort:
+    Type: AWS::EC2::NetworkAclEntry
+    Properties:
+      Egress: 'true'
+      RuleNumber: 900
+      Protocol: 6
+      PortRange:
+        From: 1024
+        To: 65535
+      CidrBlock: 0.0.0.0/0
+      RuleAction: allow
+      NetworkAclId: !Ref GlobalNetworkAcl
+
   # 踏み台サブネットのACLを作成
   BastionNetworkAcl:
     Type: AWS::EC2::NetworkAcl
@@ -104,7 +117,7 @@ Resources:
       SubnetId: !ImportValue BastionSubnet
       NetworkAclId: !Ref BastionNetworkAcl
 
-  BastionAclInSsh:
+  BastionAclInSsh1:
     Type: AWS::EC2::NetworkAclEntry
     Properties:
       Egress: 'false'
@@ -115,6 +128,19 @@ Resources:
         To: 22
       # My IPを設定
       CidrBlock: xxx.xxx.xxx.xxx/xx
+      RuleAction: allow
+      NetworkAclId: !Ref BastionNetworkAcl
+
+  BastionAclInSsh2:
+    Type: AWS::EC2::NetworkAclEntry
+    Properties:
+      Egress: 'false'
+      RuleNumber: 110
+      Protocol: 6
+      PortRange:
+        From: 22
+        To: 22
+      CidrBlock: 192.168.0.32/28
       RuleAction: allow
       NetworkAclId: !Ref BastionNetworkAcl
 
@@ -177,8 +203,8 @@ Resources:
       RuleNumber: 900
       Protocol: 6
       PortRange:
-        From: 32768
-        To: 60999
+        From: 1024
+        To: 65535
       CidrBlock: 0.0.0.0/0
       RuleAction: allow
       NetworkAclId: !Ref BastionNetworkAcl
@@ -271,8 +297,8 @@ Resources:
       RuleNumber: 900
       Protocol: 6
       PortRange:
-        From: 32768
-        To: 60999
+        From: 1024
+        To: 65535
       CidrBlock: 0.0.0.0/0
       RuleAction: allow
       NetworkAclId: !Ref AnsibleControllerNetworkAcl
@@ -365,8 +391,8 @@ Resources:
       RuleNumber: 900
       Protocol: 6
       PortRange:
-        From: 32768
-        To: 60999
+        From: 1024
+        To: 65535
       CidrBlock: 0.0.0.0/0
       RuleAction: allow
       NetworkAclId: !Ref DevAppNetworkAcl
