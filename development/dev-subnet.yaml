@@ -11,6 +11,7 @@ Resources:
   GlobalSubnet:
     Type: AWS::EC2::Subnet
     Properties:
+      AvailabilityZone: ap-northeast-1a
       CidrBlock: 192.168.0.0/28
       MapPublicIpOnLaunch: 'true'
       VpcId: !ImportValue HogeApplicationVpc
@@ -56,6 +57,7 @@ Resources:
   BastionSubnet:
     Type: AWS::EC2::Subnet
     Properties:
+      AvailabilityZone: ap-northeast-1a
       CidrBlock: 192.168.0.16/28
       MapPublicIpOnLaunch: 'true'
       VpcId: !ImportValue HogeApplicationVpc
@@ -91,6 +93,7 @@ Resources:
   AnsibleControllerSubnet:
     Type: AWS::EC2::Subnet
     Properties:
+      AvailabilityZone: ap-northeast-1a
       CidrBlock: 192.168.0.32/28
       MapPublicIpOnLaunch: 'false'
       VpcId: !ImportValue HogeApplicationVpc
@@ -126,6 +129,7 @@ Resources:
   DevAppSubnet:
     Type: AWS::EC2::Subnet
     Properties:
+      AvailabilityZone: ap-northeast-1a
       CidrBlock: 192.168.0.48/28
       MapPublicIpOnLaunch: 'false'
       VpcId: !ImportValue HogeApplicationVpc
